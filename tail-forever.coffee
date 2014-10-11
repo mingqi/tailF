@@ -46,6 +46,11 @@ class Tail extends events.EventEmitter
         start = 0
 
       size = end - start
+      
+      if @maxSize > 0 and size > @maxSize
+        start = end - @maxSize
+        size = @maxSize
+
       if size == 0
         return cb()
 
@@ -73,7 +78,7 @@ class Tail extends events.EventEmitter
   _checkOpen : (start, inode) ->
     ###
       try to open file
-      start: the postion to read file start from. default is 0
+      start: the postion to read file start from. default is file's tail position
       inode: if this parameters present, the start take effect if only file has same inode
     ###
     try 
@@ -92,6 +97,14 @@ class Tail extends events.EventEmitter
         throw new Error("failed to read file #{@filename}: #{e.message}") 
     
 
+  ###
+  options:
+    - separator: default is '\n'
+    - start: where start from, default is the tail of file
+    - inode: the tail file's inode, if file's inode not equal this will treat a new file
+    - interval: the interval millseconds to polling file state. default is 1 seconds
+    - maxSize: the maximum byte size to read one time. 0 or nagative is unlimit. 
+  ###
   constructor:(@filename,  @options = {}) ->    
     @separator = options?.separator? || '\n'
     @buffer = ''
@@ -100,6 +113,7 @@ class Tail extends events.EventEmitter
     @bookmarks = {}
     @_checkOpen(@options.start, @options.inode)
     @interval = @options.interval || 1000
+    @maxSize = @options.maxSize || -1
     @watch()
     
   
@@ -135,4 +149,4 @@ class Tail extends events.EventEmitter
     return memory
   
         
-exports.Tail = Tail
+module.exports = Tail
