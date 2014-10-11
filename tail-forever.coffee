@@ -1,7 +1,19 @@
-events= require("events")
+events = require("events")
 fs =require('fs')
+async = require 'uclogs-async'
 
 environment = process.env['NODE_ENV'] || 'development'
+
+split = (size, chunk_size) ->
+  result = []
+  while size > 0
+    if size >= chunk_size
+      result.push chunk_size
+      size -= chunk_size
+    else
+      result.push size
+      size = 0
+  return result
 
 class SeriesQueue
 
@@ -35,10 +47,10 @@ class SeriesQueue
 
 class Tail extends events.EventEmitter
 
-  _readBlock:(block, cb) =>
-    fs.fstat(block.fd, (err, stat) =>
+  _readBlock:(block, callback) =>
+    fs.fstat block.fd, (err, stat) =>
       if err
-        return cb()
+        return callback()
 
       start = @bookmarks[block.fd]
       end  = stat.size 
@@ -52,28 +64,30 @@ class Tail extends events.EventEmitter
         size = @maxSize
 
       if size == 0
-        return cb()
+        return callback()
 
-      buff = new Buffer(size) 
-      fs.read(block.fd, buff, 0, size, start, (err, bytesRead, buff) =>
-        if err 
-          @emit('error', err)
-          return cb()
+      async.reduce split(size, @bufferSize), start, (start, size, callback) =>
+        buff = new Buffer(size)
+        fs.read block.fd, buff, 0, size, start, (err, bytesRead, buff) =>
+          if err 
+            @emit('error', err)
+            return callback(err)
 
-        @bookmarks[block.fd] = start + bytesRead        
-        data = buff.toString('utf-8')
-        @buffer += data
-        parts = @buffer.split(@separator)
-        @buffer = parts.pop()
-        @emit("line", chunk) for chunk in parts
+          data = buff.toString('utf-8')
+          @buffer += data
+          parts = @buffer.split(@separator)
+          @buffer = parts.pop()
+          @emit("line", chunk) for chunk in parts
+          callback(null, start + bytesRead)
+      , (err, position) =>
+          return callback(err) if err
+          @bookmarks[block.fd] = position
+          if (block.type == 'close') 
+            fs.close(block.fd);
+            delete @bookmarks[block.fd];
 
-        if (block.type == 'close') 
-          fs.close(block.fd);
-          delete @bookmarks[block.fd];
-
-        return cb()
-      )
-    )
+          return callback()
+      
 
   _checkOpen : (start, inode) ->
     ###
@@ -104,6 +118,7 @@ class Tail extends events.EventEmitter
     - inode: the tail file's inode, if file's inode not equal this will treat a new file
     - interval: the interval millseconds to polling file state. default is 1 seconds
     - maxSize: the maximum byte size to read one time. 0 or nagative is unlimit. 
+    - bufferSize: the memory buffer size. Tail read file content into buffer first.
   ###
   constructor:(@filename,  @options = {}) ->    
     @separator = options?.separator? || '\n'
@@ -114,6 +129,7 @@ class Tail extends events.EventEmitter
     @_checkOpen(@options.start, @options.inode)
     @interval = @options.interval || 1000
     @maxSize = @options.maxSize || -1
+    @bufferSize = @options.bufferSize || 1024 * 1024 # 1M
     @watch()
     
   
