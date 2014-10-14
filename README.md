@@ -11,7 +11,7 @@ npm install tail-forever
 # Use
 ## simple case
 ```javascript
-Tail = require('tail-forever').Tail;
+Tail = require('tail-forever');
 
 tail = new Tail("fileToTail");
 tail.on("line", function(line) {
