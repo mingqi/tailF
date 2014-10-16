@@ -125,7 +125,6 @@
               }
               data = iconv.decode(buff, encoding);
               _this.buffer += data;
-              console.log("buffer=" + _this.buffer + "|END|");
               parts = _this.buffer.split(_this.separator);
               _this.buffer = parts.pop();
               for (_i = 0, _len = parts.length; _i < _len; _i++) {

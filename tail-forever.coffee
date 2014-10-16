@@ -89,7 +89,6 @@ class Tail extends events.EventEmitter
 
           data = iconv.decode buff, encoding
           @buffer += data
-          console.log "buffer="+@buffer+"|END|"
           parts = @buffer.split(@separator)
           @buffer = parts.pop()
           @emit("line", chunk) for chunk in parts
