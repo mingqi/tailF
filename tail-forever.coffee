@@ -1,6 +1,8 @@
 events = require("events")
 fs =require('fs')
 async = require 'uclogs-async'
+jschardet = require 'jschardet'
+iconv = require('iconv-lite')
 
 environment = process.env['NODE_ENV'] || 'development'
 
@@ -73,16 +75,29 @@ class Tail extends events.EventEmitter
             @emit('error', err)
             return callback(err)
 
-          data = buff.toString('utf-8')
+          if @encoding != 'auto'
+            encoding = @encoding
+          else
+            detected_enc = jschardet.detect buff
+            if not detected_enc?.encoding or detected_enc.confidence < 0.9
+              encoding = "utf-8"
+            else if not iconv.encodingExists detected_enc.encoding
+              console.error "auto detected #{detected_enc.encoding} is not supported, use UTF-8 as alternative"
+              encoding = 'utf-8'
+            else
+              encoding = detected_enc.encoding
+
+          data = iconv.decode buff, encoding
           @buffer += data
+          console.log "buffer="+@buffer+"|END|"
           parts = @buffer.split(@separator)
           @buffer = parts.pop()
           @emit("line", chunk) for chunk in parts
+          @bookmarks[block.fd] = start + bytesRead
           callback(null, start + bytesRead)
-      , (err, position) =>
+      , (err) =>
           return callback(err) if err
-          @bookmarks[block.fd] = position
-          if (block.type == 'close') 
+          if (block.type == 'close')
             fs.close(block.fd);
             delete @bookmarks[block.fd];
 
@@ -119,6 +134,7 @@ class Tail extends events.EventEmitter
     - interval: the interval millseconds to polling file state. default is 1 seconds
     - maxSize: the maximum byte size to read one time. 0 or nagative is unlimit. 
     - bufferSize: the memory buffer size. Tail read file content into buffer first.
+    - encoding: the file encoding. if absence, encoding will be auto detected
   ###
   constructor:(@filename,  @options = {}) ->    
     @separator = options?.separator? || '\n'
@@ -130,6 +146,9 @@ class Tail extends events.EventEmitter
     @interval = @options.interval || 1000
     @maxSize = @options.maxSize || -1
     @bufferSize = @options.bufferSize || 1024 * 1024 # 1M
+    @encoding = @options.encoding || 'utf-8'
+    if @encoding != 'auto' and not iconv.encodingExists @encoding
+      throw new Error("#{@encoding} is not supported, check encoding supported list in https://github.com/ashtuchkin/iconv-lite/wiki/Supported-Encodings") 
     @watch()
     
   
@@ -141,6 +160,8 @@ class Tail extends events.EventEmitter
     
   _watchFileEvent: (curr, prev) ->
     if curr.ino != @current.inode
+      ## file was rotate or relink
+      ## need to close old file descriptor and open new one
       if @current.fd
         @queue.push({type: 'close', fd: @current.fd})
       @_checkOpen(0)

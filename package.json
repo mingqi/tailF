@@ -13,7 +13,9 @@
   "main": "tail-forever.js",
   "version": "0.3.0",
   "dependencies": {
-    "uclogs-async": "*"
+    "uclogs-async": "*",
+    "jschardet" : "*",
+    "iconv-lite" : "*"
   },
   "licenses": [
     {
