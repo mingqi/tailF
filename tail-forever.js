@@ -249,6 +249,16 @@
       }
     };
 
+    Tail.prototype.where = function() {
+      if (!this.current.fd) {
+        return null;
+      }
+      return {
+        inode: this.current.inode,
+        pos: this.bookmarks[this.current.fd]
+      };
+    };
+
     Tail.prototype.unwatch = function() {
       var fd, memory, pos, _ref;
       this.queue.clean();
