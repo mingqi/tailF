@@ -168,6 +168,10 @@ class Tail extends events.EventEmitter
     if @current.fd
       @queue.push({type:'read', fd: @current.fd})
 
+  where : () ->
+    if not @current.fd
+      return null
+    return {inode: @current.inode, pos: @bookmarks[@current.fd]} 
   
   unwatch: ->
     @queue.clean()

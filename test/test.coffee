@@ -1,12 +1,11 @@
 Tail = require '../tail-forever.coffee'
 
-options = 
-  maxSize : 1024 * 1024 * 50
-  start : null
-  encoding:'auto'
+options ={"start":0,"maxSize":52428800,"bufferSize":1048576,"encoding":"utf-8"}
 
-f = '/var/tmp/1.log'
+f = './test.log'
+console.log f
 t = new Tail(f, options)
+console.log "aaaaaa"
 
 t.on 'line', (line) ->
   console.log  line
