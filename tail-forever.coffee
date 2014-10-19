@@ -110,6 +110,9 @@ class Tail extends events.EventEmitter
       inode: if this parameters present, the start take effect if only file has same inode
     ###
     try 
+      stat = fs.statSync @filename
+      if not stat.isFile()
+        throw new Error("#{@filename} is not a regular file")
       fd = fs.openSync(@filename, 'r')
       stat = fs.fstatSync(fd)
       @current = {fd: fd, inode: stat.ino}
