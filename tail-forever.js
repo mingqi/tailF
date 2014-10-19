@@ -201,6 +201,7 @@
       - inode: the tail file's inode, if file's inode not equal this will treat a new file
       - interval: the interval millseconds to polling file state. default is 1 seconds
       - maxSize: the maximum byte size to read one time. 0 or nagative is unlimit. 
+      - maxLineSize: the maximum byte of one line
       - bufferSize: the memory buffer size. Tail read file content into buffer first.
       - encoding: the file encoding. if absence, encoding will be auto detected
      */
