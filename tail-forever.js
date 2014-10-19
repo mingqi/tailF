@@ -131,6 +131,10 @@
                 chunk = parts[_i];
                 _this.emit("line", chunk);
               }
+              console.log(_this.maxLineSize);
+              if (_this.buffer.length > _this.maxLineSize) {
+                _this.buffer = '';
+              }
               _this.bookmarks[block.fd] = start + bytesRead;
               return callback(null, start + bytesRead);
             });
@@ -213,6 +217,7 @@
       this._checkOpen(this.options.start, this.options.inode);
       this.interval = this.options.interval || 1000;
       this.maxSize = this.options.maxSize || -1;
+      this.maxLineSize = this.options.maxLineSize || 1024 * 1024;
       this.bufferSize = this.options.bufferSize || 1024 * 1024;
       this.encoding = this.options.encoding || 'utf-8';
       if (this.encoding !== 'auto' && !iconv.encodingExists(this.encoding)) {
