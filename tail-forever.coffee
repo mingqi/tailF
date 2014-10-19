@@ -92,7 +92,6 @@ class Tail extends events.EventEmitter
           parts = @buffer.split(@separator)
           @buffer = parts.pop()
           @emit("line", chunk) for chunk in parts
-          console.log @maxLineSize
           if @buffer.length > @maxLineSize
             @buffer = ''
           @bookmarks[block.fd] = start + bytesRead
