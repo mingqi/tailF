@@ -131,7 +131,6 @@
                 chunk = parts[_i];
                 _this.emit("line", chunk);
               }
-              console.log(_this.maxLineSize);
               if (_this.buffer.length > _this.maxLineSize) {
                 _this.buffer = '';
               }
