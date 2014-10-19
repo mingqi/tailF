@@ -157,6 +157,10 @@
        */
       var e, fd, stat;
       try {
+        stat = fs.statSync(this.filename);
+        if (!stat.isFile()) {
+          throw new Error("" + this.filename + " is not a regular file");
+        }
         fd = fs.openSync(this.filename, 'r');
         stat = fs.fstatSync(fd);
         this.current = {

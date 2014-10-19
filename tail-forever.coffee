@@ -92,6 +92,9 @@ class Tail extends events.EventEmitter
           parts = @buffer.split(@separator)
           @buffer = parts.pop()
           @emit("line", chunk) for chunk in parts
+          console.log @maxLineSize
+          if @buffer.length > @maxLineSize
+            @buffer = ''
           @bookmarks[block.fd] = start + bytesRead
           callback(null, start + bytesRead)
       , (err) =>
@@ -147,6 +150,7 @@ class Tail extends events.EventEmitter
     @_checkOpen(@options.start, @options.inode)
     @interval = @options.interval || 1000
     @maxSize = @options.maxSize || -1
+    @maxLineSize = @options.maxLineSize || 1024 * 1024 # 1M
     @bufferSize = @options.bufferSize || 1024 * 1024 # 1M
     @encoding = @options.encoding || 'utf-8'
     if @encoding != 'auto' and not iconv.encodingExists @encoding
