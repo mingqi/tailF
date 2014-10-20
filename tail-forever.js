@@ -84,7 +84,7 @@
     Tail.prototype._readBlock = function(block, callback) {
       return fs.fstat(block.fd, (function(_this) {
         return function(err, stat) {
-          var end, size, start;
+          var end, size, split_size, start;
           if (err) {
             return callback();
           }
@@ -101,7 +101,8 @@
           if (size === 0) {
             return callback();
           }
-          return async.reduce(split(size, _this.bufferSize), start, function(start, size, callback) {
+          split_size = _this.bufferSize > 0 ? _this.bufferSize : size;
+          return async.reduce(split(size, split_size), start, function(start, size, callback) {
             var buff;
             buff = new Buffer(size);
             return fs.read(block.fd, buff, 0, size, start, function(err, bytesRead, buff) {
@@ -135,7 +136,7 @@
                 _this.buffer = '';
               }
               _this.bookmarks[block.fd] = start + bytesRead;
-              return callback(null, start + bytesRead);
+              return callback(null);
             });
           }, function(err) {
             if (err) {
@@ -201,7 +202,7 @@
       - interval: the interval millseconds to polling file state. default is 1 seconds
       - maxSize: the maximum byte size to read one time. 0 or nagative is unlimit. 
       - maxLineSize: the maximum byte of one line
-      - bufferSize: the memory buffer size. Tail read file content into buffer first.
+      - bufferSize: the memory buffer size. default is 1M. Tail read file content into buffer first. nagative value is no buffer
       - encoding: the file encoding. if absence, encoding will be auto detected
      */
 
