@@ -68,7 +68,8 @@ class Tail extends events.EventEmitter
       if size == 0
         return callback()
 
-      async.reduce split(size, @bufferSize), start, (start, size, callback) =>
+      split_size = if @bufferSize > 0 then @bufferSize else size
+      async.reduce split(size, split_size), start, (start, size, callback) =>
         buff = new Buffer(size)
         fs.read block.fd, buff, 0, size, start, (err, bytesRead, buff) =>
           if err 
@@ -95,7 +96,7 @@ class Tail extends events.EventEmitter
           if @buffer.length > @maxLineSize
             @buffer = ''
           @bookmarks[block.fd] = start + bytesRead
-          callback(null, start + bytesRead)
+          callback(null)
       , (err) =>
           return callback(err) if err
           if (block.type == 'close')
@@ -138,7 +139,7 @@ class Tail extends events.EventEmitter
     - interval: the interval millseconds to polling file state. default is 1 seconds
     - maxSize: the maximum byte size to read one time. 0 or nagative is unlimit. 
     - maxLineSize: the maximum byte of one line
-    - bufferSize: the memory buffer size. Tail read file content into buffer first.
+    - bufferSize: the memory buffer size. default is 1M. Tail read file content into buffer first. nagative value is no buffer
     - encoding: the file encoding. if absence, encoding will be auto detected
   ###
   constructor:(@filename,  @options = {}) ->    
