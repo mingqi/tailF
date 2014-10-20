@@ -211,6 +211,7 @@
      */
 
     function Tail(filename, options) {
+      var _ref, _ref1, _ref2, _ref3, _ref4;
       this.filename = filename;
       this.options = options != null ? options : {};
       this._readBlock = __bind(this._readBlock, this);
@@ -238,11 +239,11 @@
       this.isWatching = false;
       this.bookmarks = {};
       this._checkOpen(this.options.start, this.options.inode);
-      this.interval = this.options.interval || 1000;
-      this.maxSize = this.options.maxSize || -1;
-      this.maxLineSize = this.options.maxLineSize || 1024 * 1024;
-      this.bufferSize = this.options.bufferSize || 1024 * 1024;
-      this.encoding = this.options.encoding || 'utf-8';
+      this.interval = (_ref = this.options.interval) != null ? _ref : 1000;
+      this.maxSize = (_ref1 = this.options.maxSize) != null ? _ref1 : -1;
+      this.maxLineSize = (_ref2 = this.options.maxLineSize) != null ? _ref2 : 1024 * 1024;
+      this.bufferSize = (_ref3 = this.options.bufferSize) != null ? _ref3 : 1024 * 1024;
+      this.encoding = (_ref4 = this.options.encoding) != null ? _ref4 : 'utf-8';
       if (this.encoding !== 'auto' && !iconv.encodingExists(this.encoding)) {
         throw new Error("" + this.encoding + " is not supported, check encoding supported list in https://github.com/ashtuchkin/iconv-lite/wiki/Supported-Encodings");
       }

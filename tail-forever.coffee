@@ -158,11 +158,11 @@ class Tail extends events.EventEmitter
     @isWatching = false
     @bookmarks = {}
     @_checkOpen(@options.start, @options.inode)
-    @interval = @options.interval || 1000
-    @maxSize = @options.maxSize || -1
-    @maxLineSize = @options.maxLineSize || 1024 * 1024 # 1M
-    @bufferSize = @options.bufferSize || 1024 * 1024 # 1M
-    @encoding = @options.encoding || 'utf-8'
+    @interval = @options.interval ? 1000
+    @maxSize = @options.maxSize ? -1
+    @maxLineSize = @options.maxLineSize ? 1024 * 1024 # 1M
+    @bufferSize = @options.bufferSize ? 1024 * 1024 # 1M
+    @encoding = @options.encoding ? 'utf-8'
     if @encoding != 'auto' and not iconv.encodingExists @encoding
       throw new Error("#{@encoding} is not supported, check encoding supported list in https://github.com/ashtuchkin/iconv-lite/wiki/Supported-Encodings") 
     @watch()
