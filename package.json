@@ -11,11 +11,12 @@
     "url": "https://github.com/mingqi/tailF.git"
   },
   "main": "tail-forever.js",
-  "version": "0.3.8",
+  "version": "0.3.9",
   "dependencies": {
     "uclogs-async": "*",
     "jschardet" : "*",
-    "iconv-lite" : "*"
+    "iconv-lite" : "*",
+    "underscore" : "*"
   },
   "licenses": [
     {

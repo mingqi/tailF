@@ -3,6 +3,8 @@ fs =require('fs')
 async = require 'uclogs-async'
 jschardet = require 'jschardet'
 iconv = require('iconv-lite')
+assert = require 'assert'
+us = require 'underscore'
 
 environment = process.env['NODE_ENV'] || 'development'
 
@@ -143,6 +145,13 @@ class Tail extends events.EventEmitter
     - encoding: the file encoding. if absence, encoding will be auto detected
   ###
   constructor:(@filename,  @options = {}) ->    
+    assert.ok us.isNumber(options.start), "start should be number" if options.start?
+    assert.ok us.isNumber(options.inode), "inode should be number" if options.inode?
+    assert.ok us.isNumber(options.interval), "interval should be number" if options.interval?
+    assert.ok us.isNumber(options.maxSize), "maxSize should be number" if options.maxSize?
+    assert.ok us.isNumber(options.maxLineSize), "start maxLineSize should be number" if options.maxLineSize?
+    assert.ok us.isNumber(options.bufferSize), "bufferSize should be number" if options.bufferSize?
+
     @separator = options?.separator? || '\n'
     @buffer = ''
     @queue = new SeriesQueue(@_readBlock)
