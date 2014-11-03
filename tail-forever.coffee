@@ -82,7 +82,7 @@ class Tail extends events.EventEmitter
             encoding = @encoding
           else
             detected_enc = jschardet.detect buff
-            if not detected_enc?.encoding or detected_enc.confidence < 0.9
+            if not detected_enc?.encoding or detected_enc.confidence < 0.98
               encoding = "utf-8"
             else if not iconv.encodingExists detected_enc.encoding
               console.error "auto detected #{detected_enc.encoding} is not supported, use UTF-8 as alternative"

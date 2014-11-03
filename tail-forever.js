@@ -119,7 +119,7 @@
                 encoding = _this.encoding;
               } else {
                 detected_enc = jschardet.detect(buff);
-                if (!(detected_enc != null ? detected_enc.encoding : void 0) || detected_enc.confidence < 0.9) {
+                if (!(detected_enc != null ? detected_enc.encoding : void 0) || detected_enc.confidence < 0.98) {
                   encoding = "utf-8";
                 } else if (!iconv.encodingExists(detected_enc.encoding)) {
                   console.error("auto detected " + detected_enc.encoding + " is not supported, use UTF-8 as alternative");
