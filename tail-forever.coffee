@@ -32,22 +32,22 @@ class SeriesQueue
       )
 
   constructor:(@task) ->
-    @queue = [] 
+    @queue = []
     @lock = false
 
   push: (element) ->
     @queue.push element
 
     setImmediate(() =>
-      @next()      
-    )  
+      @next()
+    )
 
   clean: () ->
-    @queue = [] 
+    @queue = []
 
   length : () ->
     @queue.length
-  
+
 
 class Tail extends events.EventEmitter
 
@@ -57,12 +57,12 @@ class Tail extends events.EventEmitter
         return callback()
 
       start = @bookmarks[block.fd]
-      end  = stat.size 
+      end  = stat.size
       if start > end
         start = 0
 
       size = end - start
-      
+
       if @maxSize > 0 and size > @maxSize
         start = end - @maxSize
         size = @maxSize
@@ -74,7 +74,7 @@ class Tail extends events.EventEmitter
       async.reduce split(size, split_size), start, (start, size, callback) =>
         buff = new Buffer(size)
         fs.read block.fd, buff, 0, size, start, (err, bytesRead, buff) =>
-          if err 
+          if err
             @emit('error', err)
             return callback(err)
 
@@ -98,7 +98,7 @@ class Tail extends events.EventEmitter
           if @buffer.length > @maxLineSize
             @buffer = ''
           @bookmarks[block.fd] = start + bytesRead
-          callback(null)
+          callback(null, @bookmarks[block.fd])
       , (err) =>
           return callback(err) if err
           if (block.type == 'close')
@@ -106,7 +106,7 @@ class Tail extends events.EventEmitter
             delete @bookmarks[block.fd];
 
           return callback()
-      
+
 
   _checkOpen : (start, inode) ->
     ###
@@ -114,7 +114,7 @@ class Tail extends events.EventEmitter
       start: the postion to read file start from. default is file's tail position
       inode: if this parameters present, the start take effect if only file has same inode
     ###
-    try 
+    try
       stat = fs.statSync @filename
       if not stat.isFile()
         throw new Error("#{@filename} is not a regular file")
@@ -127,11 +127,11 @@ class Tail extends events.EventEmitter
         @bookmarks[fd] = stat.size
       @queue.push({type:'read', fd: @current.fd})
     catch e
-      if e.code == 'ENOENT'  # file not exists      
+      if e.code == 'ENOENT'  # file not exists
         @current = {fd: null, inode: 0}
       else
-        throw new Error("failed to read file #{@filename}: #{e.message}") 
-    
+        throw new Error("failed to read file #{@filename}: #{e.message}")
+
 
   ###
   options:
@@ -139,20 +139,20 @@ class Tail extends events.EventEmitter
     - start: where start from, default is the tail of file
     - inode: the tail file's inode, if file's inode not equal this will treat a new file
     - interval: the interval millseconds to polling file state. default is 1 seconds
-    - maxSize: the maximum byte size to read one time. 0 or nagative is unlimit. 
+    - maxSize: the maximum byte size to read one time. 0 or nagative is unlimit.
     - maxLineSize: the maximum byte of one line
     - bufferSize: the memory buffer size. default is 1M. Tail read file content into buffer first. nagative value is no buffer
     - encoding: the file encoding. if absence, encoding will be auto detected
   ###
-  constructor:(@filename,  @options = {}) ->    
-    assert.ok us.isNumber(options.start), "start should be number" if options.start?
-    assert.ok us.isNumber(options.inode), "inode should be number" if options.inode?
-    assert.ok us.isNumber(options.interval), "interval should be number" if options.interval?
-    assert.ok us.isNumber(options.maxSize), "maxSize should be number" if options.maxSize?
-    assert.ok us.isNumber(options.maxLineSize), "start maxLineSize should be number" if options.maxLineSize?
-    assert.ok us.isNumber(options.bufferSize), "bufferSize should be number" if options.bufferSize?
+  constructor:(@filename,  @options = {}) ->
+    assert.ok us.isNumber(@options.start), "start should be number" if @options.start?
+    assert.ok us.isNumber(@options.inode), "inode should be number" if @options.inode?
+    assert.ok us.isNumber(@options.interval), "interval should be number" if @options.interval?
+    assert.ok us.isNumber(@options.maxSize), "maxSize should be number" if @options.maxSize?
+    assert.ok us.isNumber(@options.maxLineSize), "start maxLineSize should be number" if @options.maxLineSize?
+    assert.ok us.isNumber(@options.bufferSize), "bufferSize should be number" if @options.bufferSize?
 
-    @separator = options?.separator? || '\n'
+    @separator = @options?.separator? || '\n'
     @buffer = ''
     @queue = new SeriesQueue(@_readBlock)
     @isWatching = false
@@ -164,16 +164,16 @@ class Tail extends events.EventEmitter
     @bufferSize = @options.bufferSize ? 1024 * 1024 # 1M
     @encoding = @options.encoding ? 'utf-8'
     if @encoding != 'auto' and not iconv.encodingExists @encoding
-      throw new Error("#{@encoding} is not supported, check encoding supported list in https://github.com/ashtuchkin/iconv-lite/wiki/Supported-Encodings") 
+      throw new Error("#{@encoding} is not supported, check encoding supported list in https://github.com/ashtuchkin/iconv-lite/wiki/Supported-Encodings")
     @watch()
-    
-  
+
+
   watch: ->
     return if @isWatching
     @isWatching = true
     fs.watchFile @filename, {interval: @interval}, (curr, prev) => @_watchFileEvent curr, prev
 
-    
+
   _watchFileEvent: (curr, prev) ->
     if curr.ino != @current.inode
       ## file was rotate or relink
@@ -188,22 +188,22 @@ class Tail extends events.EventEmitter
   where : () ->
     if not @current.fd
       return null
-    return {inode: @current.inode, pos: @bookmarks[@current.fd]} 
-  
+    return {inode: @current.inode, pos: @bookmarks[@current.fd]}
+
   unwatch: ->
     @queue.clean()
     fs.unwatchFile(@filename)
     @isWatching = false
     if @current.fd
-      memory = {inode: @current.inode, pos: @bookmarks[@current.fd]} 
+      memory = {inode: @current.inode, pos: @bookmarks[@current.fd]}
     else
-      memory = {inode: 0, pos: 0}  
+      memory = {inode: 0, pos: 0}
 
     for fd, pos of @bookmarks
       fs.closeSync(parseInt(fd))
     @bookmarks = {}
     @current = {fd:null, inode:0}
     return memory
-  
-        
+
+
 module.exports = Tail
