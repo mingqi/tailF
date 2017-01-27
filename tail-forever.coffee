@@ -68,6 +68,10 @@ class Tail extends events.EventEmitter
         size = @maxSize
 
       if size == 0
+        if (block.type == 'close')
+          console.log "dddddddddddddd"
+          fs.close(block.fd);
+          delete @bookmarks[block.fd];
         return callback()
 
       split_size = if @bufferSize > 0 then @bufferSize else size
@@ -142,7 +146,7 @@ class Tail extends events.EventEmitter
     - maxSize: the maximum byte size to read one time. 0 or nagative is unlimit.
     - maxLineSize: the maximum byte of one line
     - bufferSize: the memory buffer size. default is 1M. Tail read file content into buffer first. nagative value is no buffer
-    - encoding: the file encoding. if absence, encoding will be auto detected
+    - encoding: the file encoding. defalut value is "utf-8",  if "auto" encoding will be auto detected by jschardet
   ###
   constructor:(@filename,  @options = {}) ->
     assert.ok us.isNumber(@options.start), "start should be number" if @options.start?
@@ -184,6 +188,7 @@ class Tail extends events.EventEmitter
 
     if @current.fd
       @queue.push({type:'read', fd: @current.fd})
+
 
   where : () ->
     if not @current.fd
