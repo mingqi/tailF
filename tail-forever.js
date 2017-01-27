@@ -104,7 +104,6 @@
           }
           if (size === 0) {
             if (block.type === 'close') {
-              console.log("dddddddddddddd");
               fs.close(block.fd);
               delete _this.bookmarks[block.fd];
             }

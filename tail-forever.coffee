@@ -69,7 +69,6 @@ class Tail extends events.EventEmitter
 
       if size == 0
         if (block.type == 'close')
-          console.log "dddddddddddddd"
           fs.close(block.fd);
           delete @bookmarks[block.fd];
         return callback()
