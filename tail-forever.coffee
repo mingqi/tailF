@@ -66,13 +66,9 @@ class Tail extends events.EventEmitter
       if @maxSize > 0 and size > @maxSize
         start = end - @maxSize
         size = @maxSize
-
-      if size == 0
-        if (block.type == 'close')
-          fs.close(block.fd);
-          delete @bookmarks[block.fd];
-        return callback()
-
+      if start < 0 
+        start = 0
+  
       split_size = if @bufferSize > 0 then @bufferSize else size
       async.reduce split(size, split_size), start, (start, size, callback) =>
         buff = new Buffer(size)
@@ -103,12 +99,11 @@ class Tail extends events.EventEmitter
           @bookmarks[block.fd] = start + bytesRead
           callback(null, @bookmarks[block.fd])
       , (err) =>
-          return callback(err) if err
-          if (block.type == 'close')
-            fs.close(block.fd);
-            delete @bookmarks[block.fd];
-
-          return callback()
+          if err 
+            console.log err 
+            return callback(err) if err
+          else 
+            return callback()
 
 
   _checkOpen : (start, inode) ->
@@ -122,6 +117,8 @@ class Tail extends events.EventEmitter
       if not stat.isFile()
         throw new Error("#{@filename} is not a regular file")
       fd = fs.openSync(@filename, 'r')
+      if process.env.DEBUG == 'tail-forever' 
+        console.log "\t\t## FD open = " + fd    
       stat = fs.fstatSync(fd)
       @current = {fd: fd, inode: stat.ino}
       if start? and start >=0 and ( !inode or inode == stat.ino )
@@ -181,13 +178,22 @@ class Tail extends events.EventEmitter
     if curr.ino != @current.inode
       ## file was rotate or relink
       ## need to close old file descriptor and open new one
-      if @current.fd
-        @queue.push({type: 'close', fd: @current.fd})
-      @_checkOpen(0)
-
-    if @current.fd
+      if @current && @current.fd
+        # _checkOpen closes old file descriptor
+        if process.env.DEBUG == 'tail-forever' 
+          console.log "\t\tinode changed: @current.fd=" + @current.fd + " -> closing FD " + @current.fd
+        oldFd = @current.fd
+        try 
+          fs.closeSync oldFd 
+          if process.env.DEBUG == 'tail-forever' 
+            console.log "\t\tfile closed " + oldFd
+        catch err
+          console.log err 
+        finally
+          delete @bookmarks[oldFd]
+          @_checkOpen(0)
+    else if @current.fd
       @queue.push({type:'read', fd: @current.fd})
-
 
   where : () ->
     if not @current.fd
