@@ -66,13 +66,9 @@ class Tail extends events.EventEmitter
       if @maxSize > 0 and size > @maxSize
         start = end - @maxSize
         size = @maxSize
-
-      if size == 0
-        if (block.type == 'close')
-          fs.close(block.fd);
-          delete @bookmarks[block.fd];
-        return callback()
-
+      if start < 0 
+        start = 0
+      
       split_size = if @bufferSize > 0 then @bufferSize else size
       async.reduce split(size, split_size), start, (start, size, callback) =>
         buff = new Buffer(size)
@@ -103,13 +99,23 @@ class Tail extends events.EventEmitter
           @bookmarks[block.fd] = start + bytesRead
           callback(null, @bookmarks[block.fd])
       , (err) =>
-          return callback(err) if err
-          if (block.type == 'close')
-            fs.close(block.fd);
-            delete @bookmarks[block.fd];
+          if err 
+            console.log err 
+            return callback(err) if err
+          else 
+            return callback()
 
-          return callback()
-
+  _close: (fd) ->
+    try 
+      fs.closeSync fd
+      if process.env.DEBUG == 'tail-forever' 
+        console.log "\t\tfile closed " + fd
+    catch err
+      console.log err 
+    finally
+      @fileOpen = false
+      @current.fd = null
+      delete @bookmarks[fd]
 
   _checkOpen : (start, inode) ->
     ###
@@ -118,17 +124,24 @@ class Tail extends events.EventEmitter
       inode: if this parameters present, the start take effect if only file has same inode
     ###
     try
+      if @fileOpen 
+        console.log 'file already open'
+        return
       stat = fs.statSync @filename
       if not stat.isFile()
         throw new Error("#{@filename} is not a regular file")
       fd = fs.openSync(@filename, 'r')
+      @fileOpen = true
+      if process.env.DEBUG == 'tail-forever' 
+        console.log "\t\t## FD open = " + fd    
       stat = fs.fstatSync(fd)
       @current = {fd: fd, inode: stat.ino}
       if start? and start >=0 and ( !inode or inode == stat.ino )
         @bookmarks[fd] = start
       else
         @bookmarks[fd] = stat.size
-      @queue.push({type:'read', fd: @current.fd})
+
+      @queue.push({type:'read', fd: @current.fd, inode: @current.inode})
     catch e
       if e.code == 'ENOENT'  # file not exists
         @current = {fd: null, inode: 0}
@@ -154,7 +167,7 @@ class Tail extends events.EventEmitter
     assert.ok us.isNumber(@options.maxSize), "maxSize should be number" if @options.maxSize?
     assert.ok us.isNumber(@options.maxLineSize), "start maxLineSize should be number" if @options.maxLineSize?
     assert.ok us.isNumber(@options.bufferSize), "bufferSize should be number" if @options.bufferSize?
-
+    @fileOpen = false
     @separator = @options?.separator? || '\n'
     @buffer = ''
     @queue = new SeriesQueue(@_readBlock)
@@ -178,16 +191,20 @@ class Tail extends events.EventEmitter
 
 
   _watchFileEvent: (curr, prev) ->
-    if curr.ino != @current.inode
+    if (curr.ino != @current.inode) || curr.ino == 0
       ## file was rotate or relink
       ## need to close old file descriptor and open new one
-      if @current.fd
-        @queue.push({type: 'close', fd: @current.fd})
+      if @current && @current.fd
+        # _checkOpen closes old file descriptor
+        if process.env.DEBUG == 'tail-forever' 
+          console.log "\t\tinode changed: @current.fd=" + @current.fd + " -> closing FD " + @current.fd
+        oldFd = @current.fd
+        @_close(oldFd)
+        # @_checkOpen(0)
+    if !@fileOpen 
       @_checkOpen(0)
-
-    if @current.fd
-      @queue.push({type:'read', fd: @current.fd})
-
+    else
+      @queue.push({type:'read', fd: @current.fd, inode: @current.inode})
 
   where : () ->
     if not @current.fd
@@ -204,7 +221,7 @@ class Tail extends events.EventEmitter
       memory = {inode: 0, pos: 0}
 
     for fd, pos of @bookmarks
-      fs.closeSync(parseInt(fd))
+      @_close(parseInt(fd))
     @bookmarks = {}
     @current = {fd:null, inode:0}
     return memory
