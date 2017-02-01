@@ -156,6 +156,23 @@
       })(this));
     };
 
+    Tail.prototype._close = function(fd) {
+      var err, error;
+      try {
+        fs.closeSync(fd);
+        if (process.env.DEBUG === 'tail-forever') {
+          return console.log("\t\tfile closed " + fd);
+        }
+      } catch (error) {
+        err = error;
+        return console.log(err);
+      } finally {
+        this.fileOpen = false;
+        this.current.fd = null;
+        delete this.bookmarks[fd];
+      }
+    };
+
     Tail.prototype._checkOpen = function(start, inode) {
 
       /*
@@ -165,11 +182,16 @@
        */
       var e, error, fd, stat;
       try {
+        if (this.fileOpen) {
+          console.log('file already open');
+          return;
+        }
         stat = fs.statSync(this.filename);
         if (!stat.isFile()) {
           throw new Error(this.filename + " is not a regular file");
         }
         fd = fs.openSync(this.filename, 'r');
+        this.fileOpen = true;
         if (process.env.DEBUG === 'tail-forever') {
           console.log("\t\t## FD open = " + fd);
         }
@@ -185,7 +207,8 @@
         }
         return this.queue.push({
           type: 'read',
-          fd: this.current.fd
+          fd: this.current.fd,
+          inode: this.current.inode
         });
       } catch (error) {
         e = error;
@@ -236,6 +259,7 @@
       if (this.options.bufferSize != null) {
         assert.ok(us.isNumber(this.options.bufferSize), "bufferSize should be number");
       }
+      this.fileOpen = false;
       this.separator = (((ref = this.options) != null ? ref.separator : void 0) != null) || '\n';
       this.buffer = '';
       this.queue = new SeriesQueue(this._readBlock);
@@ -268,30 +292,23 @@
     };
 
     Tail.prototype._watchFileEvent = function(curr, prev) {
-      var err, error, oldFd;
-      if (curr.ino !== this.current.inode) {
+      var oldFd;
+      if ((curr.ino !== this.current.inode) || curr.ino === 0) {
         if (this.current && this.current.fd) {
           if (process.env.DEBUG === 'tail-forever') {
             console.log("\t\tinode changed: @current.fd=" + this.current.fd + " -> closing FD " + this.current.fd);
           }
           oldFd = this.current.fd;
-          try {
-            fs.closeSync(oldFd);
-            if (process.env.DEBUG === 'tail-forever') {
-              return console.log("\t\tfile closed " + oldFd);
-            }
-          } catch (error) {
-            err = error;
-            return console.log(err);
-          } finally {
-            delete this.bookmarks[oldFd];
-            this._checkOpen(0);
-          }
+          this._close(oldFd);
         }
-      } else if (this.current.fd) {
+      }
+      if (!this.fileOpen) {
+        return this._checkOpen(0);
+      } else {
         return this.queue.push({
           type: 'read',
-          fd: this.current.fd
+          fd: this.current.fd,
+          inode: this.current.inode
         });
       }
     };
@@ -325,7 +342,7 @@
       ref = this.bookmarks;
       for (fd in ref) {
         pos = ref[fd];
-        fs.closeSync(parseInt(fd));
+        this._close(parseInt(fd));
       }
       this.bookmarks = {};
       this.current = {
