@@ -71,7 +71,7 @@ class Tail extends events.EventEmitter
       
       split_size = if @bufferSize > 0 then @bufferSize else size
       async.reduce split(size, split_size), start, (start, size, callback) =>
-        buff = new Buffer(size)
+        buff = Buffer.alloc(size)
         fs.read block.fd, buff, 0, size, start, (err, bytesRead, buff) =>
           if err
             @emit('error', err)
@@ -161,6 +161,7 @@ class Tail extends events.EventEmitter
     - encoding: the file encoding. defalut value is "utf-8",  if "auto" encoding will be auto detected by jschardet
   ###
   constructor:(@filename,  @options = {}) ->
+    super()
     assert.ok us.isNumber(@options.start), "start should be number" if @options.start?
     assert.ok us.isNumber(@options.inode), "inode should be number" if @options.inode?
     assert.ok us.isNumber(@options.interval), "interval should be number" if @options.interval?
